@@ -38,21 +38,9 @@ class facialAnalysis(Vision, Reconfigurable):
     MODEL: ClassVar[Model] = Model(ModelFamily("arielle", "detector"), "facial-analysis")
     
     # Class Variables
-    img_path: str           #The exact path to the image, a numpy array in BGR format,
-                            #or a base64 encoded image. If the source image contains multiple faces, the result will
-                            #include information for each detected face.
-    
-    actions: tuple          #Attributes to analyze. The default is ('age', 'gender', 'emotion', 'race').
-                            #You can exclude some of these attributes from the analysis if needed.
-    
-    enforce_detection: bool #If no face is detected in an image, raise an exception.
-                            #Default is True. Set to False to avoid the exception for low-resolution images.
-    
-    detector_backend: str   #face detector backend. Options: 'opencv', 'retinaface',
-                            #'mtcnn', 'ssd', 'dlib', 'mediapipe', 'yolov8'.
-    
-    align: bool             #Perform alignment based on the eye positions.            
-    silent: bool            #Suppress or allow some log messages for a quieter analysis process.
+    demography: str
+    model_name: str
+    detector_backend: str
 
     # Constructor
     @classmethod
@@ -77,7 +65,7 @@ class facialAnalysis(Vision, Reconfigurable):
         models =  ["VGG-Face", "Facenet", "Facenet512", "OpenFace", "DeepFace", "DeepID", "ArcFace", "Dlib", "SFace"]
         model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         if not model_name in models:
-            raise Exception("detector_backend must be one of the following: 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
+            raise Exception("recognition_model must be one of the following: 'VGG-Face', 'Facenet', 'Facenet512', 'OpenFace', 'DeepFace', 'DeepID', 'ArcFace', 'Dlib', 'SFace'")
         return
 
     # Handles attribute reconfiguration
@@ -86,7 +74,6 @@ class facialAnalysis(Vision, Reconfigurable):
         self.detector_backend = config.attributes.fields["detector_backend"].string_value or 'opencv'
         self.model_name = config.attributes.fields["recognition_model"].string_value or 'ArcFace'
         self.demography = config.attributes.fields["demography"].string_value or 'emotion'
-        self.dominant_demography = config.attributes.fields["dominant_demography"].string_value or 'dominant_emotion'
 
     # Methods the Viam RDK defines for the Vision API (rdk:service:vision) 
     async def get_detections_from_camera(
@@ -109,7 +96,7 @@ class facialAnalysis(Vision, Reconfigurable):
 
         results = DeepFace.analyze(
             img_path=numpy.array(image.convert('RGB')),
-            actions= self.demography,
+            actions= [self.demography],
             detector_backend= self.detector_backend,
             enforce_detection=False,
             align=True,
